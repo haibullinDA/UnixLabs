@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+  echo Не указан параметр
+  exit 1
+fi
+
+OUTPUT_FILE_NAME_STRING=$(grep -i "Output:" "$1")
+OUTPUT_FILE_NAME_WITH_WHITESPACE=${OUTPUT_FILE_NAME_STRING#//Output:}
+OUTPUT_FILE_NAME=$(echo "$OUTPUT_FILE_NAME_WITH_WHITESPACE" | tr -d '[:space:]')
+
+if [ -z "$OUTPUT_FILE_NAME" ]; then
+  echo Имя файла отсутствует
+  exit 1
+fi
+
+TEMP_FOLDER=$(mktemp -d)
+
+trap "rm -Rf TEMP_FOLDER; exit 1" SIGINT SIGHUP SIGTERM
+
+cp "$1" "$TEMP_FOLDER"
+
+CURRENT_DIR=$(pwd)
+
+cd "$TEMP_FOLDER"
+
+g++ -o "$OUTPUT_FILE_NAME" "$1"
+
+if [ $? -ne 0 ]; then
+  echo Компиляция не удалась!
+  cd "$CURRENT_DIR"
+  rm -Rf "$TEMP_FOLDER"
+  exit 1
+fi
+
+mv "$OUTPUT_FILE_NAME" "$CURRENT_DIR"
+cd "$CURRENT_DIR"
+rm -Rf "$TEMP_FOLDER"
+echo Скомпилировано: "$OUTPUT_FILE_NAME"
